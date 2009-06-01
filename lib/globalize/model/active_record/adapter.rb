@@ -15,8 +15,15 @@ module Globalize
       
       def write(locale, attr_name, value)
         locale = locale.to_sym
-        self[locale] ||= {}
-        self[locale][attr_name] = value
+        
+        unless value.is_a?(Hash)
+          self[locale] ||= {}
+          self[locale][attr_name] = value
+        else
+          value.each do |locale, value|
+            self.write(locale, attr_name, value)
+          end
+        end
       end
     end
     

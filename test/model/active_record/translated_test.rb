@@ -447,6 +447,76 @@ class TranslatedTest < ActiveSupport::TestCase
     
     assert_equal 2, translated_comment.globalize_translations.size
   end
+  
+  test "setting multiple translations at once on create" do
+    post = Post.create!(
+      :subject => {:de => "Essen", :en => "Food"},
+      :content => {:de => "gehen", :en => "grabbing"}
+    )
+    
+    post.reload
+
+    I18n.locale = :de
+    assert_equal ["Essen", "gehen"], [post.subject, post.content]
+    I18n.locale = :en
+    assert_equal ["Food", "grabbing"], [post.subject, post.content]
+  end
+  
+  test "setting multiple tranlsations for selected attributes" do
+    I18n.locale = :de
+    
+    post = Post.create!(
+      :subject => {:en => "Food"},
+      :content => {:de => "gehen"}
+    )
+    
+    assert_equal [nil, "gehen"], [post.subject, post.content]
+    I18n.locale = :en
+    assert_equal ["Food", nil], [post.subject, post.content]
+  end
+  
+  test "updating attributes with multiple translations" do
+    post = Post.create!(
+      :subject => {:de => "Essen", :en => "Food"},
+      :content => {:de => "gehen", :en => "grabbing"}
+    )
+    
+    post.update_attributes(
+      :subject => {:de => "Nahrung"},
+      :content => {:en => "consumption"}
+    )
+    
+    I18n.locale = :en
+    assert_equal ["Food", "consumption"], [post.subject, post.content]
+    I18n.locale = :de
+    assert_equal ["Nahrung", "gehen"], [post.subject, post.content]
+  end
+  
+  test "updating and saving with multiple translations" do
+    post = Post.new(
+      :subject => {:de => "Essen", :en => "Food"},
+      :content => {:de => "gehen", :en => "grabbing"}
+    )
+    
+    post.save!
+    post.reload
+    
+    post.subject = {:de => "Nahrung"}
+    post.save!
+    I18n.locale = :de
+    assert_equal ["Nahrung", "gehen"], [post.subject, post.content]
+    I18n.locale = :en
+    assert_equal ["Food", "grabbing"], [post.subject, post.content]
+  end
+  
+  test "invalid arguments for multiple translation create" do
+    assert_raise(ActiveRecord::UnknownAttributeError, "unknown attribute: xxx") do
+      Post.create!(
+        :xxx => {:de => "foo", :en => "bar"},
+        :content => {:de => "baz", :en => "beng"}
+      )
+    end
+  end
 end
 
 # TODO should validate_presence_of take fallbacks into account? maybe we need
